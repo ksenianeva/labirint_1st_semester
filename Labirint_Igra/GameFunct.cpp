@@ -193,3 +193,23 @@ void moveDown() {
 		i--;
 	}
 }
+
+void MenuScreen(HDC hdc) { //отрисовка главного экрана
+	HBRUSH Background;
+	Background = CreateSolidBrush(RGB(100, 200, 213));
+	SelectObject(hdc, Background);
+	RECT Ground = { 0, 0, 1920, 1080 };
+	FillRect(hdc, &Ground, Background);
+	DeleteObject(Background);
+
+	HFONT hFont;
+	hFont = CreateFont(32, 0, 0, 0, 900, 0, 0, 0,
+		DEFAULT_CHARSET, 0, 0, 0, 0,
+		L"Courier New"
+	);
+	SelectObject(hdc, hFont);
+	SetTextColor(hdc, RGB(100, 200, 213));
+
+	TCHAR  string1[] = _T("Лабиринты.beta");
+	TextOut(hdc, 100, 50, (LPCWSTR)string1, _tcslen(string1));
+	}

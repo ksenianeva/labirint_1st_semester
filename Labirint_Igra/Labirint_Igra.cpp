@@ -7,10 +7,14 @@
 
 #define MAX_LOADSTRING 100
 
+
 // Глобальные переменные:
 HINSTANCE hInst;                                // текущий экземпляр
 WCHAR szTitle[MAX_LOADSTRING];                  // Текст строки заголовка
 WCHAR szWindowClass[MAX_LOADSTRING];            // имя класса главного окна
+int ScreenCase = 1;
+int xPos;
+int yPos;
 
 // Отправить объявления функций, включенных в этот модуль кода:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -124,10 +128,30 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static HWND hBtn; // дескриптор кнопки
+
     switch (message)
     {
+    case WM_MOUSEMOVE:
+    {
+        switch (wParam)
+        {
+        case MK_LBUTTON:
+            xPos = LOWORD(lParam);
+            yPos = HIWORD(lParam);
+        }
+    }
+
+
+
     case WM_COMMAND:
         {
+        if (lParam == (LPARAM)hBtn)    // если нажали на кнопку
+        {
+            ScreenCase = 0;
+            InvalidateRect(hWnd, NULL, TRUE);
+        }
+        else {
             int wmId = LOWORD(wParam);
             // Разобрать выбор в меню:
             switch (wmId)
@@ -141,6 +165,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
             }
+            }
         }
         break;
     case WM_PAINT:
@@ -148,13 +173,63 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
 
-            DrawField(hdc);
+            switch (ScreenCase)
+            {
+            case 0:
+                DestroyWindow(hBtn); //удаляем кнопку иначе она будет поверх окна с игрой
+                DrawField(hdc);
+                break;
+
+            case 1:
+                MenuScreen(hdc);
+                break;
+            }
+           
 
             // TODO: Добавьте сюда любой код прорисовки, использующий HDC...
             EndPaint(hWnd, &ps);
         }
         break;
-    
+
+    case WM_DRAWITEM:
+    {
+        static HFONT hfontButton = CreateFont(20, 0, 0, 0, FW_NORMAL, 0, 0, 0, DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+            DEFAULT_QUALITY, DEFAULT_PITCH, L"Courier");
+        LPDRAWITEMSTRUCT Item = (LPDRAWITEMSTRUCT)lParam;
+
+        //отображение текста
+        SetBkMode(Item->hDC, TRANSPARENT);
+        SetTextColor(Item->hDC, RGB(100,200,213));
+        SelectObject(Item->hDC, hfontButton);
+
+        //белый фон при клике
+        if (Item->itemState & ODS_SELECTED)
+            FillRect(Item->hDC, &Item->rcItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
+        else
+            FillRect(Item->hDC, &Item->rcItem, (HBRUSH)GetStockObject(WHITE_BRUSH));
+
+        //нарисовать текст
+        int len = GetWindowTextLength(Item->hwndItem);
+        char* buf = new char[len + 1];
+        GetWindowTextA(Item->hwndItem, buf, len + 1);
+        DrawTextA(Item->hDC, buf, len, &Item->rcItem, DT_CENTER);
+
+        return true;
+    }
+
+    case WM_CREATE:
+        // Создаем и показываем кнопку
+        if (ScreenCase == 1) {
+            hBtn = CreateWindowW(_T("button"), _T("Play!"),
+                WS_CHILD | WS_VISIBLE | WS_BORDER | BS_OWNERDRAW,  //создаем кнопку самостоятельно
+                110, 100, 220, 50, hWnd, 0, hInst, NULL);
+            ShowWindow(hBtn, SW_SHOWNORMAL);
+
+        }
+            
+        break;
+
     case WM_KEYDOWN:
         switch (wParam)
         {
