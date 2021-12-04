@@ -5,6 +5,7 @@
 #define N 15
 #define M 15
 
+extern int ScreenCase;
 
 //Field
 int a[N][M] = {
@@ -100,7 +101,35 @@ void DrawField(HDC hdc) {
 	}
 }
 
-void moveLeft() {
+void WinScreen(HDC hdc) { //Функция вызова экрана победы
+	HBRUSH Background;
+	Background = CreateSolidBrush(RGB(100, 200, 213));
+	SelectObject(hdc, Background);
+	RECT Ground = { 0, 0, 1920, 1080 };
+	FillRect(hdc, &Ground, Background);
+	DeleteObject(Background);
+
+	HFONT hFont;
+	hFont = CreateFont(32, 0, 0, 0, 900, 0, 0, 0,
+		DEFAULT_CHARSET, 0, 0, 0, 0,
+		L"Courier New"
+	);
+	SelectObject(hdc, hFont);
+	SetTextColor(hdc, RGB(124, 252, 0));
+
+	TCHAR  string1[] = _T("Уровень пройден!");
+	TextOut(hdc, 50, 50, (LPCWSTR)string1, _tcslen(string1));
+
+	TCHAR  string2[] = _T("Для продолжения нажмите пробел");
+	TextOut(hdc, 10, 100, (LPCWSTR)string2, _tcslen(string2));
+
+	TCHAR  stringCount[] = _T("Уровней осталось:");/*Тут должна быть переменная подсчета пройденных уровней*/
+	TextOut(hdc, 50, 150, (LPCWSTR)stringCount, _tcslen(stringCount));
+	
+
+}
+
+void moveLeft(HWND hWnd) {
 	int i, j;
 	i = 0;
 	while (i < N) {
@@ -115,6 +144,8 @@ void moveLeft() {
 				else if (a[i][j - 1] == 1) {
 					a[i][j - 1] = 3;
 					a[i][j] = 0;
+					ScreenCase = 2;
+					InvalidateRect(hWnd, NULL, TRUE);
 				}
 			}
 			j++;
@@ -123,7 +154,7 @@ void moveLeft() {
 	}
 }
 
-void moveRight() {
+void moveRight(HWND hWnd) {
 	int i = 0;
 	while (i < N) {
 		int j = M - 2;
@@ -136,8 +167,10 @@ void moveRight() {
 				}
 
 				else if (a[i][j + 1] == 1) {
-					a[i][j + 1] = 1; // Crown "eats" a player, next level
+					a[i][j + 1] = 1; // Корона "съедает" игрока, следующий уровень
 					a[i][j] = 0;
+					ScreenCase = 2;
+					InvalidateRect(hWnd, NULL, TRUE);
 					
 				}
 			}
@@ -213,3 +246,4 @@ void MenuScreen(HDC hdc) { //отрисовка главного экрана
 	TCHAR  string1[] = _T("Лабиринты.beta");
 	TextOut(hdc, 100, 50, (LPCWSTR)string1, _tcslen(string1));
 	}
+

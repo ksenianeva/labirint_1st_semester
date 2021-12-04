@@ -183,6 +183,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case 1:
                 MenuScreen(hdc);
                 break;
+            case 2:
+                WinScreen(hdc);
+                break;
+
             }
            
 
@@ -238,7 +242,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             InvalidateRect(hWnd, NULL, TRUE);
             break;
         case VK_LEFT:
-            moveLeft();
+            moveLeft(hWnd);
             InvalidateRect(hWnd, NULL, TRUE);
             break;
         case VK_UP:
@@ -246,7 +250,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             InvalidateRect(hWnd, NULL, TRUE);
             break;
         case VK_RIGHT:
-            moveRight();
+            moveRight(hWnd);
             InvalidateRect(hWnd, NULL, TRUE);
             break;
         }
