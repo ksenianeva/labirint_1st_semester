@@ -6,6 +6,7 @@
 #include "Game.h"
 
 #define MAX_LOADSTRING 100
+#define _CRT_NO_WARNINGS_
 
 
 // Глобальные переменные:
@@ -128,7 +129,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    static HWND hBtn; // дескриптор кнопки
+    static HWND StartBtn; // дескриптор кнопки
 
     switch (message)
     {
@@ -146,7 +147,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_COMMAND:
         {
-        if (lParam == (LPARAM)hBtn)    // если нажали на кнопку
+        if (lParam == (LPARAM) StartBtn)    // если нажали на кнопку
         {
             ScreenCase = 0;
             InvalidateRect(hWnd, NULL, TRUE);
@@ -176,7 +177,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             switch (ScreenCase)
             {
             case 0:
-                DestroyWindow(hBtn); //удаляем кнопку иначе она будет поверх окна с игрой
+                DestroyWindow(StartBtn); //удаляем кнопку, иначе она будет поверх окна с игрой
                 DrawField(hdc);
                 break;
 
@@ -207,7 +208,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         SetTextColor(Item->hDC, RGB(100,200,213));
         SelectObject(Item->hDC, hfontButton);
 
-        //белый фон при клике
+        //черный фон при клике
         if (Item->itemState & ODS_SELECTED)
             FillRect(Item->hDC, &Item->rcItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
         else
@@ -225,10 +226,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         // Создаем и показываем кнопку
         if (ScreenCase == 1) {
-            hBtn = CreateWindowW(_T("button"), _T("Play!"),
+            StartBtn = CreateWindowW(_T("button"), _T("Play!"),
                 WS_CHILD | WS_VISIBLE | WS_BORDER | BS_OWNERDRAW,  //создаем кнопку самостоятельно
                 110, 100, 220, 50, hWnd, 0, hInst, NULL);
-            ShowWindow(hBtn, SW_SHOWNORMAL);
+            ShowWindow(StartBtn, SW_SHOWNORMAL);
 
         }
             
@@ -238,7 +239,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         switch (wParam)
         {
         case VK_DOWN:
-            moveDown();
+            moveDown(hWnd);
             InvalidateRect(hWnd, NULL, TRUE);
             break;
         case VK_LEFT:
@@ -246,12 +247,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             InvalidateRect(hWnd, NULL, TRUE);
             break;
         case VK_UP:
-            moveUp();
+            moveUp(hWnd);
             InvalidateRect(hWnd, NULL, TRUE);
             break;
         case VK_RIGHT:
             moveRight(hWnd);
             InvalidateRect(hWnd, NULL, TRUE);
+            break;
+        case 0x53:
+            saveProgress();
+            break;
+        case 0x4C:
+            loadProgress(hWnd);
             break;
         }
         break;

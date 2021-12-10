@@ -1,31 +1,24 @@
 #include "framework.h"
 #include "Game.h"
 #include <stdio.h>
+#define _CRT_NO_WARNINGS_
+
+#define wall 2
 
 #define N 15
 #define M 15
 
+int levelLoaded = 0; //флаг загрузки уровня
 extern int ScreenCase;
 
-//Field
-int a[N][M] = {
-{ 2, 2, 2, 2, 2,   2, 2, 2, 2, 2,   2, 2, 2, 2, 2 },
-{ 2, 3, 2, 0, 0,   0, 2, 2, 0, 0,   0, 0, 0, 2, 2 },
-{ 2, 0, 0, 0, 2,   0, 2, 0, 0, 0,   0, 0, 2, 2, 2 },
-{ 2, 2, 2, 2, 2,   0, 0, 0, 0, 0,   0, 2, 0, 0, 2 },
-{ 2, 0, 2, 0, 2,   0, 2, 2, 0, 2,   0, 2, 0, 0, 2 },
-{ 2, 0, 0, 0, 0,   2, 2, 0, 0, 0,	0, 0, 0, 0, 0 },
-{ 2, 0, 2, 2, 0,   2, 0, 2, 0, 0,	0, 2, 2, 2, 2 },
-{ 2, 2, 2, 0, 0,   0, 0, 0, 0, 2,   0, 2, 0, 0, 1 },
-{ 2, 0, 0, 0, 0,   2, 2, 2, 0, 2,   0, 2, 0, 0, 2 },
-{ 2, 0, 0, 0, 0,   2, 0, 0, 0, 2,   0, 2, 2, 0, 2 },
-{ 2, 0, 0, 0, 0,   0, 0, 0, 2, 2,   0, 0, 0, 0, 2 },
-{ 2, 0, 2, 2, 0,   2, 0, 0, 0, 2,   0, 2, 2, 0, 0 },
-{ 2, 2, 2, 0, 0,   2, 2, 0, 0, 0,   0, 2, 0, 0, 2 },
-{ 2, 0, 0, 0, 0,   2, 0, 2, 0, 0,   0, 2, 0, 0, 2 },
-{ 2, 2, 2, 2, 2,   2, 2, 2, 2, 2,   2, 2, 2, 2, 2 }
+struct PlayerPlace { //структура игрока
+	int x;
+	int y;
 };
 
+PlayerPlace player = { 0, 0 };
+
+int a[N][M];
 //Путь - 0
 //Выход с короной - 1
 //Стена - 2
@@ -50,14 +43,30 @@ void Crown(HDC hdc, int cx, int cy, int sizeX, int sizeY, COLORREF color) {
 		cx,		cy - sizeY
 	};
 
+
 	HPEN hPen;
-	hPen = CreatePen(PS_SOLID, 3, color);
+	hPen = CreatePen(PS_SOLID, 2, RGB(128,0, 128));
 	SelectObject(hdc, hPen);
 	Polyline(hdc, p, 8);
 	DeleteObject(hPen);
 }
 
 void DrawField(HDC hdc) {
+	if (!levelLoaded) {
+		FILE* Testlevel = fopen("Levels\\TestLevel.txt", "rt");
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j < M; j++) {
+				fscanf(Testlevel, "%d", &a[i][j]);
+			}
+
+		}
+
+		fscanf(Testlevel, "%d", &player.x);
+		fscanf(Testlevel, "%d", &player.y);
+		fclose(Testlevel);
+		levelLoaded = 1;
+	}
+
 	HBRUSH WallBrush;
 	WallBrush = CreateSolidBrush(RGB(128, 0, 128));
 
@@ -65,7 +74,16 @@ void DrawField(HDC hdc) {
 	WayBrush = CreateSolidBrush(RGB(240, 128, 128));
 
 	HBRUSH GamerBrush;
-	GamerBrush = CreateSolidBrush(RGB(255, 228, 225));
+	GamerBrush = CreateSolidBrush(RGB(100, 200, 213));
+
+	if (player.x == 0 && player.y == 0) {
+		player.x = 1;
+		player.y = 1;
+	}
+
+	RECT plRect = { player.x * sizeX, player.y * sizeY, (player.x + 1) * sizeX, (player.y + 1) * sizeY };
+	FillRect(hdc, &plRect, GamerBrush);
+
 
 	int i, j;
 	i = 0;
@@ -81,9 +99,6 @@ void DrawField(HDC hdc) {
 			else if (a[i][j] == 2) //wall
 			{
 				FillRect(hdc, &rect, WallBrush);
-			}
-			else if (a[i][j] == 3) {
-				FillRect(hdc, &rect, GamerBrush);
 			}
 			else if (a[i][j] == 1) {
 				int x = i;
@@ -130,101 +145,78 @@ void WinScreen(HDC hdc) { //Функция вызова экрана победы
 }
 
 void moveLeft(HWND hWnd) {
-	int i, j;
-	i = 0;
-	while (i < N) {
-		j = 1;
-		while (j < M) {
-			if (a[i][j] == 3) {
-				if (a[i][j - 1] == 0) {
-					a[i][j - 1] = 3;
-					a[i][j] = 0;
-				
-				}
-				else if (a[i][j - 1] == 1) {
-					a[i][j - 1] = 3;
-					a[i][j] = 0;
-					ScreenCase = 2;
-					InvalidateRect(hWnd, NULL, TRUE);
-				}
-			}
-			j++;
-		}
-		i++;
-	}
+	if (a[player.y][player.x-1] == wall) {
+		return;
+	} //чек на стену
+
+	a[player.y][player.x] = 0;
+	player.x--;
+
+	
+
+	if (a[player.y][player.x] == 1) {
+		ScreenCase = 2;
+		InvalidateRect(hWnd, NULL, TRUE);
+		return;
+	}//чек на корону
+
+	a[player.y][player.x] = 3;
+	
 }
 
 void moveRight(HWND hWnd) {
-	int i = 0;
-	while (i < N) {
-		int j = M - 2;
-		while (j >= 0) {
-			if (a[i][j] == 3) {
-				if (a[i][j + 1] == 0) {
-					a[i][j + 1] = 3;
-					a[i][j] = 0;
-					
-				}
+	if (a[player.y][player.x + 1] == wall) {
+		return;
+	} //чек на стену
 
-				else if (a[i][j + 1] == 1) {
-					a[i][j + 1] = 1; // Корона "съедает" игрока, следующий уровень
-					a[i][j] = 0;
-					ScreenCase = 2;
-					InvalidateRect(hWnd, NULL, TRUE);
-					
-				}
-			}
-			j--;
-		}
-		i++;
-	}
+	a[player.y][player.x] = 0;
+	player.x++;
+
+	if (a[player.y][player.x] == 1) {
+		ScreenCase = 2;
+		InvalidateRect(hWnd, NULL, TRUE);
+		return;
+	} //чек на корону
+
+	a[player.y][player.x] = 3;
+
 }
 
 
-void moveUp() {
-	int i = 1;
-	while (i < N) {
-		int j = 0;
-		while (j < M) {
-			if (a[i][j] == 3) {
-				if (a[i - 1][j] == 0) {
-					a[i - 1][j] = 3;
-					a[i][j] = 0;
+void moveUp(HWND hWnd) {
+	if (a[player.y - 1][player.x] == wall) {
+		return;
+	} //чек на стену
 
-				}
-				else if (a[i - 1][j] == 1) {
-					a[i - 1][j] = 3;
-					a[i][j] = 0;
-					
-				}
-			}
-			j++;
-		}
-		i++;
-	}
+	a[player.y][player.x] = 0;
+	player.y--;
+
+	if (a[player.y][player.x] == 1) {
+		ScreenCase = 2;
+		InvalidateRect(hWnd, NULL, TRUE);
+		return;
+	}//чек на корону
+
+	a[player.y][player.x] = 3;
+
 }
 
-void moveDown() {
-	int i = N - 2;
-	while (i >= 0) {
-		int j = 0;
-		while (j < M) {
-			if (a[i][j] == 3) {
-				if (a[i + 1][j] == 0) {
-					a[i + 1][j] = 3;
-					a[i][j] = 0;
-				
-				}
-				else if (a[i + 1][j] == 1) {
-					a[i + 1][j] = 3;
-					a[i][j] = 0;
-					
-				}
-			}
-			j++;
-		}
-		i--;
-	}
+void moveDown(HWND hWnd) {
+	if (a[player.y + 1][player.x] == wall) {
+		return;
+	} //чек на стену
+
+	a[player.y][player.x] = 0;
+	player.y++;
+
+	if (a[player.y][player.x] == 1) {
+		ScreenCase = 2;
+		InvalidateRect(hWnd, NULL, TRUE);
+		return;
+	}//чек на корону
+
+	a[player.y][player.x] = 3;
+
 }
 
 void MenuScreen(HDC hdc) { //отрисовка главного экрана
@@ -247,3 +239,34 @@ void MenuScreen(HDC hdc) { //отрисовка главного экрана
 	TextOut(hdc, 100, 50, (LPCWSTR)string1, _tcslen(string1));
 	}
 
+
+void saveProgress(){
+
+	FILE* savePath = fopen("Levels\\Save.txt", "wt");
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < M; j++) {
+			fprintf(savePath, "%d ", a[i][j]);
+		}
+		fprintf(savePath, "\n");
+	}
+
+	fprintf(savePath, "%d %d", player.x, player.y);
+
+	fclose(savePath);
+}
+
+void loadProgress(HWND hWnd) {
+
+	FILE* savePath = fopen("Levels\\Save.txt", "rt");
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < M; j++) {
+			fscanf(savePath, "%d", &a[i][j]);
+		}
+
+	}
+
+	fscanf(savePath, "%d", &player.x);
+	fscanf(savePath, "%d", &player.y);
+	fclose(savePath);
+	InvalidateRect(hWnd, NULL, TRUE);
+}
