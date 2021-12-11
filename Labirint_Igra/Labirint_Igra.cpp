@@ -104,7 +104,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    hInst = hInstance; // Сохранить маркер экземпляра в глобальной переменной
 
    HWND hWnd = CreateWindowW(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW,
-      CW_USEDEFAULT, 0, 465, 508, nullptr, nullptr, hInstance, nullptr);
+      CW_USEDEFAULT, 0, 700, 508, nullptr, nullptr, hInstance, nullptr);
 
    if (!hWnd)
    {
@@ -128,12 +128,15 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    static HWND StartBtn; // дескриптор кнопки
+{   
+    static HWND nameBtn; // дескриптор кнопки забрать имя
+    static HWND hEdt1; // дескрипторы поля редактирования
+    static HWND StartBtn; // дескриптор кнопки старта
+    static HWND RecordBtn; // дескриптор кнопки рекордов
 
     switch (message)
     {
-    case WM_MOUSEMOVE:
+    case WM_MOUSEMOVE: //подключение мыши
     {
         switch (wParam)
         {
@@ -147,10 +150,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_COMMAND:
         {
-        if (lParam == (LPARAM) StartBtn)    // если нажали на кнопку
+        if (lParam == (LPARAM) StartBtn)    // если нажали на кнопку Play
         {
-            ScreenCase = 0;
+            ScreenCase = 0; //экран игры 
+            SetFocus(hWnd);
             InvalidateRect(hWnd, NULL, TRUE);
+        }
+        else if (lParam == (LPARAM)RecordBtn)    // если нажали на кнопку Рекорд
+        {
+        ScreenCase = 3; //экран игры 
+        SetFocus(hWnd);
+        InvalidateRect(hWnd, NULL, TRUE);
+        }
+        else if(lParam == (LPARAM)nameBtn){
+            TCHAR StrT[20];
+            char str[20];
+
+            // Берем имя 
+            GetWindowText(hEdt1, StrT, sizeof(StrT));
+            wcstombs(str, StrT, 20);
+
+            // Фокус возвращаем в игру
+            // нажатия клавиш снова управляют игрой!
+            SetFocus(hWnd);
+            setPlayerName(str);
         }
         else {
             int wmId = LOWORD(wParam);
@@ -173,19 +196,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-
             switch (ScreenCase)
             {
             case 0:
-                DestroyWindow(StartBtn); //удаляем кнопку, иначе она будет поверх окна с игрой
                 DrawField(hdc);
                 break;
-
             case 1:
-                MenuScreen(hdc);
+                MenuScreen(hdc); //отображение окна меню
                 break;
             case 2:
-                WinScreen(hdc);
+                WinScreen(hdc); //экран победы 
+                break;
+            case 3:
+                RecordScreen(hdc); //экран рекордов
                 break;
 
             }
@@ -211,10 +234,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         //черный фон при клике
         if (Item->itemState & ODS_SELECTED)
             FillRect(Item->hDC, &Item->rcItem, (HBRUSH)GetStockObject(BLACK_BRUSH));
+        //статичный цвет кнопки
         else
             FillRect(Item->hDC, &Item->rcItem, (HBRUSH)GetStockObject(WHITE_BRUSH));
 
-        //нарисовать текст
+        //вывести текст
         int len = GetWindowTextLength(Item->hwndItem);
         char* buf = new char[len + 1];
         GetWindowTextA(Item->hwndItem, buf, len + 1);
@@ -224,14 +248,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 
     case WM_CREATE:
-        // Создаем и показываем кнопку
-        if (ScreenCase == 1) {
-            StartBtn = CreateWindowW(_T("button"), _T("Play!"),
-                WS_CHILD | WS_VISIBLE | WS_BORDER | BS_OWNERDRAW,  //создаем кнопку самостоятельно
-                110, 100, 220, 50, hWnd, 0, hInst, NULL);
+            loadRecords();
+        // Создаем и показываем кнопки
+            //Кнопка Play
+            StartBtn = CreateWindowW(_T("button"), _T("Play!"), 
+            WS_CHILD | WS_VISIBLE | WS_BORDER | BS_OWNERDRAW,  //создаем кнопку самостоятельно
+            500, 100, 150, 40, hWnd, 0, hInst, NULL);
             ShowWindow(StartBtn, SW_SHOWNORMAL);
+        
 
-        }
+            //Кнопка таблица рекордов
+            RecordBtn = CreateWindowW(_T("button"), _T("Рекорды"),
+            WS_CHILD | WS_VISIBLE | WS_BORDER | BS_OWNERDRAW,  //создаем кнопку самостоятельно
+            500, 200, 150, 40, hWnd, 0, hInst, NULL);
+            ShowWindow(RecordBtn, SW_SHOWNORMAL);
+
+            hInst = ((LPCREATESTRUCT)lParam)->hInstance; // дескриптор приложения
+        // Создаем и показываем поле редактирования 
+            hEdt1 = CreateWindowW(_T("edit"), _T("Noname"),
+                WS_CHILD | WS_VISIBLE | WS_BORDER | ES_RIGHT, 500, 50, 150, 30,
+                hWnd, 0, hInst, NULL);
+            ShowWindow(hEdt1, SW_SHOWNORMAL);
+
+           //Кнопка запомнить имя
+            nameBtn = CreateWindowW(_T("button"), _T("Запомнить!"),
+                WS_CHILD | WS_VISIBLE | WS_BORDER | BS_OWNERDRAW,  //создаем кнопку самостоятельно
+                500, 10, 150, 40, hWnd, 0, hInst, NULL);
+            ShowWindow(nameBtn, SW_SHOWNORMAL);
+        
             
         break;
 
@@ -254,11 +298,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             moveRight(hWnd);
             InvalidateRect(hWnd, NULL, TRUE);
             break;
-        case 0x53:
+        case 0x53: //s
             saveProgress();
             break;
-        case 0x4C:
+        case 0x4C: //l
             loadProgress(hWnd);
+            break;
+        case 0x20: //пробел
+            ScreenCase = 1;
+            InvalidateRect(hWnd, NULL, TRUE);
             break;
         }
         break;
